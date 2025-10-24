@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>🎬 Movies for {{ user.name }}</h2>
+
+<!-- Movies List -->
+<div class="movies-list">
+    {% for movie in movies %}
+    <div class="movie-card">
+        {% if movie.poster_url %}
+            <img src="{{ movie.poster_url }}" alt="{{ movie.name }} poster" class="poster">
+        {% else %}
+            <div class="poster-placeholder">No Image</div>
+        {% endif %}
+        <div class="movie-info">
+            <h3>{{ movie.name }} {% if movie.year %}({{ movie.year }}){% endif %}</h3>
+            {% if movie.director %}
+            <p>Directed by {{ movie.director }}</p>
+            {% endif %}
+            <form action="{{ url_for('delete_movie', user_id=user.id, movie_id=movie.id) }}" method="post">
+                <button type="submit" class="delete-btn">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <p>No movies yet. Add one below!</p>
+    {% endfor %}
+</div>
+
+<!-- Add Movie Form -->
+<h3>Add a movie</h3>
+<form action="{{ url_for('user_movies', user_id=user.id) }}" method="post" class="add-form">
+    <input type="text" name="title" placeholder="Movie title" required>
+    <button type="submit">Add Movie</button>
+</form>
+
+<p><a href="{{ url_for('home') }}">← Back to Users</a></p>
+{% endblock %}
