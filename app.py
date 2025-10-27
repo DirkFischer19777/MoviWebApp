@@ -1,6 +1,6 @@
 from flask import Flask, request, redirect, url_for, render_template, flash
 from data_manager import DataManager
-from models import db, User, Movie
+from models import db, User
 import os
 from dotenv import load_dotenv
 
@@ -89,6 +89,28 @@ def delete_movie(user_id, movie_id):
         flash('Movie could not be deleted.', 'error')
     return redirect(url_for('user_movies', user_id=user_id))
 
+# -------------------------------------------
+# Error Handling
+# -------------------------------------------
+
+@app.errorhandler(404)
+def page_not_found(e):
+    """Handle 404 errors when a page or resource is not found."""
+    return render_template('404.html', error=e), 404
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    """Handle 500 errors caused by server issues."""
+    return render_template('500.html', error=e), 500
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(e):
+    """Catch any unexpected errors and show a friendly error page."""
+    app.logger.error(f"Unexpected error: {e}")
+    return render_template('error.html', error=e), 500
+
 
 # -------------------------------------------
 # Run the Flask app
@@ -96,4 +118,4 @@ def delete_movie(user_id, movie_id):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

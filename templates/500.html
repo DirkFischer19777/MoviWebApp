@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="error-page">
+  <h1>500 — Serverfehler</h1>
+  <p>Uups! Auf dem Server ist ein unerwarteter Fehler aufgetreten.</p>
+  <a href="{{ url_for('home') }}" class="btn">Zurück zur Startseite</a>
+</div>
+{% endblock %}

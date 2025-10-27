@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="error-page">
+  <h1>404 — Seite nicht gefunden</h1>
+  <p>Die Seite, die du suchst, existiert nicht oder wurde verschoben.</p>
+  <a href="{{ url_for('home') }}" class="btn">Zurück zur Startseite</a>
+</div>
+{% endblock %}
