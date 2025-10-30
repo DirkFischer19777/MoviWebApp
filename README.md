@@ -1,6 +1,6 @@
-# 🎬 MoviWebApp
+# 🎬 MovieWebApp
 
-MoviWebApp is a simple Flask web application that lets users manage their favorite movies.  
+MovieWebApp is a simple Flask web application that lets users manage their favorite movies.  
 Movie data (title, year, director, and poster) is automatically fetched from the **OMDb API**.
 
 ---
@@ -39,7 +39,7 @@ cd MoviWebApp
 ## Activate viritual enviroment
 python3 -m venv .venv
 source .venv/bin/activate     # macOS/Linux
-# oder
+# or
 .venv\Scripts\activate        # Windows
 
 ## 2. install requirements
