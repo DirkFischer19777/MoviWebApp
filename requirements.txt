@@ -1,0 +1,26 @@
+# === Flask Web Framework ===
+Flask==3.0.3
+
+# === Database (ORM) ===
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.35
+
+# === Environment Variables ===
+python-dotenv==1.0.1
+
+# === HTTP Requests (for OMDb API) ===
+requests==2.32.3
+
+# === Templates and Frontend ===
+Jinja2==3.1.4
+
+# === Development and Utilities ===
+Werkzeug==3.0.4
+itsdangerous==2.2.0
+click==8.1.7
+
+# === Optional (logging and debugging) ===
+blinker==1.8.2
+
+# === Optional (if you use Flask-CORS or extensions later) ===
+# Flask-Cors==4.0.1
