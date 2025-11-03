@@ -1,20 +1,39 @@
 {% extends "base.html" %}
-
 {% block content %}
-<h2>All Users</h2>
+<div class="container">
+    <h2>Users</h2>
 
-<ul>
-    {% for user in users %}
-        <li>
-            <a href="{{ url_for('user_movies', user_id=user.id) }}">{{ user.name }}</a>
-        </li>
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="messages">
+          {% for category, message in messages %}
+            <div class="alert {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- User list -->
+    {% if users %}
+      <ul class="user-list">
+        {% for user in users %}
+          <li>
+            <a href="{{ url_for('user_movies', user_id=user.id) }}">
+              👤 {{ user.name }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
     {% else %}
-        <li>No users yet. Add one below!</li>
-    {% endfor %}
-</ul>
+      <p>No users found yet. Add your first user below!</p>
+    {% endif %}
 
-<form action="{{ url_for('add_user') }}" method="POST">
-    <input type="text" name="name" placeholder="Enter new user name" required>
-    <button type="submit">Add User</button>
-</form>
+    <!-- Add new user -->
+    <h3>Add a New User</h3>
+    <form action="{{ url_for('add_user') }}" method="post" class="add-form">
+        <input type="text" name="name" placeholder="Enter user name" required>
+        <button type="submit" class="btn add">➕ Add User</button>
+    </form>
+</div>
 {% endblock %}

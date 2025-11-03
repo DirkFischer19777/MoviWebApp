@@ -2,10 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MoviWebApp</title>
-
-    <!-- Link to global stylesheet -->
+    <title>🎬 MoviWebApp</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -16,13 +13,12 @@
         </nav>
     </header>
 
-    <!-- Main content block for child templates -->
-    <main class="container">
+    <main>
         {% block content %}{% endblock %}
     </main>
 
     <footer>
-        <p>&copy; 2025 MoviWebApp — Powered by Flask</p>
+        <p>© 2025 MoviWebApp — Powered by Flask.</p>
     </footer>
 </body>
 </html>

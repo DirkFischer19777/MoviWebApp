@@ -1,121 +1,156 @@
 from flask import Flask, request, redirect, url_for, render_template, flash
 from data_manager import DataManager
-from models import db, User
+from models import db, User, Movie
 import os
 from dotenv import load_dotenv
+import requests
 
 # -------------------------------------------
-# Load .env file
+# Load environment variables
 # -------------------------------------------
 load_dotenv()
 OMDB_API_KEY = os.getenv("OMDB_API_KEY")
-FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "devkey")
 
 # -------------------------------------------
-# Flask application setup
+# Flask app setup
 # -------------------------------------------
 app = Flask(__name__)
-app.secret_key = FLASK_SECRET_KEY
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "devkey")
 
-# Base directory for database path
 basedir = os.path.abspath(os.path.dirname(__file__))
-
-# SQLAlchemy configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'data/movies.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize database with Flask app
 db.init_app(app)
-
-# Initialize DataManager
 data_manager = DataManager(omdb_api_key=OMDB_API_KEY)
+
 
 # -------------------------------------------
 # Routes
 # -------------------------------------------
+
 @app.route('/')
 def home():
-    """Display the homepage listing all users."""
+    """Display all users."""
     users = data_manager.get_users()
     return render_template('index.html', users=users)
 
 
 @app.route('/users', methods=['POST'])
 def add_user():
-    """Create a new user based on submitted form data."""
+    """Add a new user with duplicate name check."""
     name = request.form.get('name')
-    if name:
-        data_manager.create_user(name)
-        flash(f'User "{name}" created!', 'success')
+
+    if not name.strip():
+        flash("Username cannot be empty.", "error")
+        return redirect(url_for('home'))
+
+    existing_user = User.query.filter_by(name=name).first()
+    if existing_user:
+        flash(f'User "{name}" already exists!', 'error')
+        return redirect(url_for('home'))
+
+    data_manager.create_user(name)
+    flash(f'User "{name}" created successfully!', 'success')
     return redirect(url_for('home'))
 
 
-@app.route('/users/<int:user_id>/movies', methods=['GET', 'POST'])
+@app.route('/users/<int:user_id>/movies', methods=['GET'])
 def user_movies(user_id):
-    """Display all movies for a user and handle adding new movies."""
+    """Display all movies for a user."""
+    user = User.query.get_or_404(user_id)
+    movies = data_manager.get_movies(user_id)
+    return render_template('movies.html', user=user, movies=movies)
+
+
+@app.route('/users/<int:user_id>/movies/add', methods=['POST'])
+def add_movie(user_id):
+    """Add a new movie to a user's list, prevent duplicates, and handle OMDb errors."""
+    title = request.form.get('title')
     user = User.query.get_or_404(user_id)
 
-    if request.method == 'POST':
-        title = request.form.get('title')
-        if title:
-            movie = data_manager.add_movie(user_id, title)
-            if movie:
-                flash(f'Movie "{movie.name}" added!', 'success')
-            else:
-                flash(f'Movie "{title}" could not be added.', 'error')
+    if not title.strip():
+        flash("Movie title cannot be empty.", "error")
         return redirect(url_for('user_movies', user_id=user_id))
 
-    movies = data_manager.get_movies(user_id)
-    return render_template('movies.html', movies=movies, user=user)
+    existing_movie = Movie.query.filter_by(title=title, user_id=user_id).first()
+    if existing_movie:
+        flash(f'Movie "{title}" already exists for {user.name}!', 'error')
+        return redirect(url_for('user_movies', user_id=user_id))
+
+    try:
+        response = requests.get(f'https://www.omdbapi.com/?t={title}&apikey={OMDB_API_KEY}')
+        data = response.json()
+
+        if data.get("Response") == "True":
+            movie = Movie(
+                title=data.get("Title"),
+                year=data.get("Year"),
+                director=data.get("Director"),
+                rating=data.get("imdbRating"),
+                poster_url=data.get("Poster"),
+                user_id=user_id
+            )
+            db.session.add(movie)
+            db.session.commit()
+            flash(f'Movie "{data.get("Title")}" added successfully!', 'success')
+        else:
+            flash(f'Movie "{title}" not found on OMDb.', 'error')
+
+    except Exception as e:
+        flash(f"Error while fetching movie data: {e}", "error")
+
+    return redirect(url_for('user_movies', user_id=user_id))
 
 
 @app.route('/users/<int:user_id>/movies/<int:movie_id>/update', methods=['POST'])
 def update_movie(user_id, movie_id):
-    """Update the title of an existing movie for a specific user."""
+    """Update a movie title."""
     new_title = request.form.get('new_title')
-    if new_title:
-        data_manager.update_movie(movie_id, new_title)
-        flash(f'Movie updated to "{new_title}"!', 'success')
+
+    if not new_title.strip():
+        flash("New title cannot be empty.", "error")
+        return redirect(url_for('user_movies', user_id=user_id))
+
+    movie = Movie.query.get_or_404(movie_id)
+    movie.title = new_title
+    db.session.commit()
+    flash(f'Movie title updated to "{new_title}".', 'success')
     return redirect(url_for('user_movies', user_id=user_id))
 
 
 @app.route('/users/<int:user_id>/movies/<int:movie_id>/delete', methods=['POST'])
 def delete_movie(user_id, movie_id):
-    """Delete a movie from a user's movie list."""
-    success = data_manager.delete_movie(movie_id)
-    if success:
-        flash('Movie deleted successfully.', 'success')
-    else:
-        flash('Movie could not be deleted.', 'error')
+    """Delete a movie with error handling."""
+    try:
+        movie = Movie.query.get_or_404(movie_id)
+        db.session.delete(movie)
+        db.session.commit()
+        flash(f'Movie "{movie.title}" deleted successfully.', 'success')
+    except Exception as e:
+        flash(f"Error deleting movie: {e}", "error")
     return redirect(url_for('user_movies', user_id=user_id))
+
 
 # -------------------------------------------
 # Error Handling
 # -------------------------------------------
-
 @app.errorhandler(404)
 def page_not_found(e):
-    """Handle 404 errors when a page or resource is not found."""
-    return render_template('404.html', error=e), 404
+    """Custom 404 page."""
+    return render_template('404.html'), 404
 
 
 @app.errorhandler(500)
-def internal_server_error(e):
-    """Handle 500 errors caused by server issues."""
-    return render_template('500.html', error=e), 500
-
-
-@app.errorhandler(Exception)
-def handle_unexpected_error(e):
-    """Catch any unexpected errors and show a friendly error page."""
-    app.logger.error(f"Unexpected error: {e}")
-    return render_template('error.html', error=e), 500
+def internal_error(e):
+    """Custom 500 page."""
+    return render_template('500.html'), 500
 
 
 # -------------------------------------------
-# Run the Flask app
+# Run app
 # -------------------------------------------
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=5001)
+    app.run(debug=True)
